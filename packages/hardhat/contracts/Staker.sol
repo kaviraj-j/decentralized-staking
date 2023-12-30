@@ -13,7 +13,7 @@ contract Staker {
 
   ExampleExternalContract public exampleExternalContract;
   
-  mapping (address => uint256) balances;
+  mapping (address => uint256) public balances;
   uint256 public constant THRESHOLD = 1 ether;
   uint256 public deadline = block.timestamp + 30 seconds;
 
@@ -68,13 +68,15 @@ contract Staker {
   }
 
   function stake() public deadlineReached(false) payable {
-    balances[msg.sender] = msg.value;
+    balances[msg.sender] += msg.value;
     emit Stake(msg.sender, msg.value);
   }
 
-  function execute() external thresholdReached(true) deadlineReached(true) {
-    (bool success, ) = address(exampleExternalContract).call{value: address(this).balance}(abi.encodeWithSignature("complete()"));
-    require(success, "Failed sending amount to the contract");
+  function execute() external deadlineReached(true) {
+    if(address(this).balance >= THRESHOLD) {
+      (bool success, ) = address(exampleExternalContract).call{value: address(this).balance}(abi.encodeWithSignature("complete()"));
+      require(success, "Failed sending amount to the contract");
+    }
   }
 
   function withdraw() external deadlineReached(true) thresholdReached(false) {
